@@ -17,7 +17,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUserModel, IdentityRole
         base.OnModelCreating(builder);
 
         builder.Entity<BookingModel>()
-            .HasIndex(b => new { b.RoomId, b.BookingDate })
-            .IsUnique();
+            .HasOne(b => b.Room)
+            .WithMany()
+            .HasForeignKey(b => b.RoomId);
+
+        builder.Entity<BookingModel>()
+            .HasOne(b => b.User)
+            .WithMany()
+            .HasForeignKey(b => b.UserId);
     }
 }

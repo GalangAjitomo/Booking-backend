@@ -20,7 +20,11 @@ public static class BookingEndpoints
             Guid? roomId
         ) =>
         {
-            IQueryable<BookingModel> query = db.Bookings;
+            var query = db.Bookings
+                .AsNoTracking()
+                .Include(b => b.Room)
+                .Include(b => b.User)
+                .AsQueryable();
 
             if (date.HasValue)
                 query = query.Where(b => b.BookingDate == date.Value.Date);
@@ -28,9 +32,26 @@ public static class BookingEndpoints
             if (roomId.HasValue)
                 query = query.Where(b => b.RoomId == roomId.Value);
 
-            return Results.Ok(await query.ToListAsync());
+            var result = await query
+                .OrderByDescending(b => b.BookingDate)
+                .Select(b => new BookingListDto
+                {
+                    BookingId = b.BookingId,
+                    BookingDate = b.BookingDate,
+                    Purpose = b.Purpose,
+
+                    RoomId = b.RoomId,
+                    RoomName = b.Room.Name,
+
+                    UserId = b.UserId,
+                    UserName = b.User.UserName!
+                })
+                .ToListAsync();
+
+            return Results.Ok(result);
         })
         .WithName("GetBookings");
+
 
         // ================== POST ==================
         group.MapPost("/", async (
